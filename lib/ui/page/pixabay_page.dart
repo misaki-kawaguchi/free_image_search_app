@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:free_image_search_app/utils/constants.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class PixabayPage extends StatefulWidget {
   const PixabayPage({Key? key}) : super(key: key);
@@ -43,8 +47,22 @@ class _PixabayPageState extends State<PixabayPage> {
         itemBuilder: (context, index) {
           Map<String, dynamic> image = imageList[index];
           return InkWell(
-            onTap: () {
-              print(image['likes']);
+            onTap: () async {
+              // 一時保存に使えるフォルダ情報を取得する
+              Directory dir = await getTemporaryDirectory();
+
+              Response response = await Dio().get(
+                image[('webformatURL')],
+                options: Options(
+                  // 画像をダウンロードするときは ResponseType.bytes を指定します。
+                  responseType: ResponseType.bytes,
+                ),
+              );
+              // フォルダの中に image.png という名前でファイルを作り、そこに画像データを書き込む。
+              File imageFile = await File('${dir.path}/image.png').writeAsBytes(response.data);
+
+              // path指定してシェアする
+              await Share.shareFiles([imageFile.path]);
             },
             child: Stack(
               fit: StackFit.expand,
