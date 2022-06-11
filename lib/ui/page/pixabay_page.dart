@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:free_image_search_app/models/pixabay_image.dart';
 import 'package:free_image_search_app/utils/constants.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,7 +16,7 @@ class PixabayPage extends StatefulWidget {
 
 class _PixabayPageState extends State<PixabayPage> {
   // 取得した画像データを入れる
-  List imageList = [];
+  List<PixabayImage> pixabayImages = [];
 
   @override
   void initState() {
@@ -43,32 +44,18 @@ class _PixabayPageState extends State<PixabayPage> {
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
         ),
-        itemCount: imageList.length,
+        itemCount: pixabayImages.length,
         itemBuilder: (context, index) {
-          Map<String, dynamic> image = imageList[index];
+          final pixabayImage = pixabayImages[index];
           return InkWell(
             onTap: () async {
-              // 一時保存に使えるフォルダ情報を取得する
-              Directory dir = await getTemporaryDirectory();
-
-              Response response = await Dio().get(
-                image[('webformatURL')],
-                options: Options(
-                  // 画像をダウンロードするときは ResponseType.bytes を指定します。
-                  responseType: ResponseType.bytes,
-                ),
-              );
-              // フォルダの中に image.png という名前でファイルを作り、そこに画像データを書き込む。
-              File imageFile = await File('${dir.path}/image.png').writeAsBytes(response.data);
-
-              // path指定してシェアする
-              await Share.shareFiles([imageFile.path]);
+              shareImage(pixabayImage.webformatURL);
             },
             child: Stack(
               fit: StackFit.expand,
               children: [
                 Image.network(
-                  image['previewURL'],
+                  pixabayImage.previewURL,
                   fit: BoxFit.cover,
                 ),
                 Align(
@@ -82,7 +69,7 @@ class _PixabayPageState extends State<PixabayPage> {
                           Icons.thumb_up_alt_outlined,
                           size: 14,
                         ),
-                        Text('${image['likes']}'),
+                        Text('${pixabayImage.likes}'),
                       ],
                     ),
                   ),
@@ -96,10 +83,38 @@ class _PixabayPageState extends State<PixabayPage> {
   }
 
   Future<void> fetchImage(String text) async {
-    final response = await Dio().get(Constants().baseAPI(text));
+    final response = await Dio().get(
+      'https://pixabay.com/api',
+      queryParameters: {
+        'key': Constants.baseAPI,
+        'q': text,
+        'image_type': 'photo',
+        'per_page': 100,
+      },
+    );
 
-    imageList = response.data['hits'];
+    final List hits = response.data['hits'];
+    pixabayImages = hits.map((e) => PixabayImage.fromMap(e)).toList();
     // 画像を更新
     setState(() {});
+  }
+
+  Future<void> shareImage(String url) async {
+    // 一時保存に使えるフォルダ情報を取得する
+    final dir = await getTemporaryDirectory();
+
+    final response = await Dio().get(
+      url,
+      options: Options(
+        // 画像をダウンロードするときは ResponseType.bytes を指定します。
+        responseType: ResponseType.bytes,
+      ),
+    );
+    // フォルダの中に image.png という名前でファイルを作り、そこに画像データを書き込む。
+    File imageFile =
+        await File('${dir.path}/image.png').writeAsBytes(response.data);
+
+    // path指定してシェアする
+    await Share.shareFiles([imageFile.path]);
   }
 }
