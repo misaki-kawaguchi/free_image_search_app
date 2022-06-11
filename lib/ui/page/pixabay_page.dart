@@ -10,19 +10,36 @@ class PixabayPage extends StatefulWidget {
 }
 
 class _PixabayPageState extends State<PixabayPage> {
+  // 取得した画像データを入れる
+  List imageList = [];
+
   @override
   void initState() {
     super.initState();
     fetchImage();
   }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold();
+    return Scaffold(
+      body: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+        ),
+        itemCount: imageList.length,
+        itemBuilder: (context, index) {
+          Map<String, dynamic> image = imageList[index];
+          return Image.network(image['previewURL']);
+        },
+      ),
+    );
   }
-  
-  Future<void> fetchImage() async{
+
+  Future<void> fetchImage() async {
     final response = await Dio().get(Constants.baseAPI);
 
-    print(response.data);
+    imageList = response.data['hits'];
+    // 画像を更新
+    setState(() {});
   }
 }
