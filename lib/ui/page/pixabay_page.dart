@@ -16,7 +16,7 @@ class _PixabayPageState extends State<PixabayPage> {
   @override
   void initState() {
     super.initState();
-    fetchImage();
+    fetchImage('');
   }
 
   @override
@@ -31,6 +31,7 @@ class _PixabayPageState extends State<PixabayPage> {
           ),
           onFieldSubmitted: (text) {
             print(text);
+            fetchImage(text);
           },
         ),
       ),
@@ -47,8 +48,8 @@ class _PixabayPageState extends State<PixabayPage> {
     );
   }
 
-  Future<void> fetchImage() async {
-    final response = await Dio().get(Constants.baseAPI);
+  Future<void> fetchImage(String text) async {
+    final response = await Dio().get(Constants().baseAPI(text));
 
     imageList = response.data['hits'];
     // 画像を更新
